@@ -42,5 +42,21 @@ pipeline {
                 '''
             }
         }
+        stage('Run Flask app') {
+    steps {
+        sh '''
+            APP_DIR="/home/ec2-user/LinkNest"
+
+            cd $APP_DIR
+
+            # Kill previous Flask instances (if any)
+            pkill -f "python3 app.py" || true
+
+            # Run Flask using nohup and ensure it's in the background
+            nohup python3 app.py > flask.log 2>&1 &
+        '''
+    }
+}
+
     }
 }
