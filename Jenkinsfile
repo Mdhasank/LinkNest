@@ -29,6 +29,7 @@ pipeline {
 
                     # Copy app files from workspace to target directory
                     cp ${WORKSPACE}/app.py $TARGET_DIR/
+                    cp ${WORKSPACE}/index.html $TARGET_DIR/  
                     cp ${WORKSPACE}/requirements.txt $TARGET_DIR/
 
                     # Change directory to target dir
@@ -42,21 +43,6 @@ pipeline {
                 '''
             }
         }
-        stage('Run Flask app') {
-    steps {
-        sh '''
-            APP_DIR="/home/ec2-user/LinkNest"
-
-            cd $APP_DIR
-
-            # Kill previous Flask instances (if any)
-            pkill -f "python3 app.py" || true
-
-            # Run Flask using nohup and ensure it's in the background
-            nohup python3 app.py > flask.log 2>&1 &
-        '''
-    }
-}
 
     }
 }
