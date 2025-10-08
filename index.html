@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LinkNest — Personal Link Organizer</title>
+<meta name="description" content="LinkNest — private offline link organizer. Save, categorize, export and import links in your browser." />
+<style>
+  /* -------------------------
+     Variables (flat design)
+     ------------------------- */
+  :root{
+    --bg: #f5f7fb;
+    --panel: #ffffff;
+    --muted: #475569;
+    --text: #0f1724;
+    --glass-border: rgba(15,23,33,0.06);
+    --accent: #2563eb; /* primary blue */
+    --success: #16a34a;
+    --danger: #ef4444;
+    --radius: 12px;
+    --card-shadow: 0 8px 28px rgba(15,23,33,0.06);
+    --ease: cubic-bezier(.2,.9,.3,1);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color-scheme: light;
+  }
+  :root.dark{
+    --bg: #0b1220;
+    --panel: #0f1724;
+    --muted: #9aa4b2;
+    --text: #e6eef8;
+    --glass-border: rgba(255,255,255,0.04);
+    --card-shadow: 0 10px 30px rgba(2,6,23,0.6);
+    --accent: #60a5fa;
+    --success: #4ade80;
+    --danger: #fb7185;
+    color-scheme: dark;
+  }
+
+  /* Tag colors */
+  :root{
+    --tag-learn: #0ea5a4;
+    --tag-focus: #7c3aed;
+    --tag-work: #2563eb;
+    --tag-read: #f59e0b;
+    --tag-tools: #10b981;
+    --tag-imported: #94a3b8;
+  }
+  :root.dark{
+    --tag-learn: #67f1ef;
+    --tag-focus: #c4b5fd;
+    --tag-work: #93c5fd;
+    --tag-read: #fcd34d;
+    --tag-tools: #86efac;
+    --tag-imported: #9aa9b8;
+  }
+
+  /* Reset/base */
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    min-height:100%;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:20px;
+    transition:background .32s var(--ease), color .32s var(--ease);
+  }
+
+  /* App shell */
+  .app{
+    max-width:1100px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns: 1fr 340px;
+    gap:18px;
+    align-items:start;
+  }
+  @media (max-width:980px){ .app{ grid-template-columns:1fr } }
+
+  header{
+    grid-column: 1 / -1;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:4px;
+  }
+  .brand{
+    display:flex;gap:12px;align-items:center;
+  }
+  .logo{
+    width:52px;height:52px;border-radius:10px;
+    background:transparent;border:1px solid var(--glass-border);
+    display:grid;place-items:center;font-weight:800;color:var(--accent);
+    font-size:18px;
+  }
+  .brand h1{margin:0;font-size:18px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+  .header-actions{display:flex;gap:10px;align-items:center}
+
+  /* Theme toggle (clean switch with icon) */
+  .theme-switch{
+    width:54px;height:32px;border-radius:999px;display:flex;align-items:center;padding:4px;
+    background:var(--panel);border:1px solid var(--glass-border);cursor:pointer;
+    box-shadow:var(--card-shadow);
+  }
+  .switch-knob{
+    width:24px;height:24px;border-radius:999px;background:var(--panel);border:1px solid var(--glass-border);
+    display:grid;place-items:center;font-size:14px;transition:transform .28s var(--ease);
+  }
+  .theme-switch[data-theme="dark"] .switch-knob{ transform: translateX(22px); }
+
+  /* Panels */
+  .panel{
+    background:var(--panel);
+    border-radius:var(--radius);
+    padding:16px;
+    border:1px solid var(--glass-border);
+    box-shadow:var(--card-shadow);
+  }
+
+  /* Left column (add + list) */
+  .left .intro{ display:flex;gap:12px;align-items:center;margin-bottom:10px }
+  .intro .title{font-weight:700}
+  .quick-note{font-size:13px;color:var(--muted)}
+
+  /* Form */
+  form.add-form{ display:grid; gap:10px; grid-template-columns: 1fr 160px; align-items:end }
+  @media (max-width:700px){ form.add-form{ grid-template-columns: 1fr; } }
+
+  label{ font-size:13px;color:var(--muted); margin-bottom:6px; display:block }
+  input[type="text"], input[type="url"], select, textarea{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--glass-border);
+    background:transparent; color:var(--text); font-size:14px; outline:none; transition:box-shadow .18s var(--ease), transform .12s var(--ease);
+  }
+  input:focus, textarea:focus, select:focus{ box-shadow: 0 8px 20px rgba(0,0,0,0.06); transform: translateY(-2px); }
+
+  .form-row{ display:flex; gap:8px }
+  .btn{
+    padding:10px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:700;
+    background:var(--accent); color:white; transition:transform .12s var(--ease), opacity .12s var(--ease);
+  }
+  .btn.ghost{ background:transparent;color:var(--muted); border:1px solid var(--glass-border); font-weight:600 }
+  .btn.small{ padding:8px 10px; font-weight:600 }
+
+  .hint{ font-size:12px; color:var(--muted) }
+
+  /* Filters */
+  .filters{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .chip{ padding:8px 10px;border-radius:999px;border:1px solid var(--glass-border); background:transparent; cursor:pointer; font-weight:700; color:var(--muted); transition: transform .12s var(--ease) }
+  .chip:hover{ transform: translateY(-3px) }
+  .chip.active{ background:var(--accent); color:white; border:0; }
+
+  /* Link groups */
+  .group{ margin-top:14px; animation:fadeInUp .36s var(--ease) both }
+  .group h3{ margin:0 0 8px 0; font-size:15px; display:flex; align-items:center; gap:8px; color:var(--text) }
+  .group-list{ display:flex; flex-direction:column; gap:10px }
+
+  .link-item{
+    display:flex; gap:12px; align-items:center; padding:12px; border-radius:10px; border:1px solid var(--glass-border); background:transparent;
+    transition: transform .12s var(--ease), box-shadow .12s var(--ease), opacity .12s var(--ease);
+  }
+  .link-item:hover{ transform: translateY(-6px); box-shadow: 0 10px 30px rgba(2,6,23,0.06) }
+
+  .favicon{
+    width:44px;height:44px;border-radius:9px;border:1px solid var(--glass-border); display:grid;place-items:center; font-weight:700; font-size:16px; color:var(--muted);
+    flex-shrink:0;
+  }
+  .meta{ flex:1; min-width:0 }
+  .meta .title{ font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .meta .url{ font-size:13px; color:var(--muted); margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .tag-badge{ display:inline-block; margin-top:8px; padding:6px 8px; border-radius:999px; font-size:12px; color:white; font-weight:700 }
+
+  .actions{ display:flex; gap:8px; align-items:center; }
+  .icon-btn{ background:transparent; border:1px solid var(--glass-border); padding:8px; border-radius:8px; cursor:pointer; color:var(--muted) }
+  .icon-btn:hover{ transform: translateY(-3px) }
+  .open-btn{ padding:8px 12px; border-radius:8px; background:var(--accent); color:white; border:0; font-weight:700; cursor:pointer }
+
+  /* Side column */
+  .side { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .notice{ display:flex; gap:10px; align-items:flex-start; padding:12px; border-radius:10px; border:1px dashed var(--glass-border) }
+  .import-area{ display:grid; gap:8px }
+  textarea.small-text{ min-height:120px; resize:vertical; padding:10px; border-radius:10px; border:1px solid var(--glass-border); background:transparent; color:var(--text) }
+
+  footer{ grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; padding-top:8px; font-size:13px; color:var(--muted) }
+
+  /* Animations */
+  @keyframes fadeInUp{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
+
+  /* responsive tweaks */
+  @media (max-width:700px){
+    .logo{ width:44px;height:44px;font-size:16px }
+    .header-actions { gap:8px }
+    .theme-switch{ width:48px;height:28px }
+    .switch-knob{ width:22px;height:22px }
+    .actions { flex-wrap:wrap; }
+  }
+
+  /* Focus accessibility */
+  :focus{ outline: 3px solid rgba(37,99,235,0.12); outline-offset:2px }
+
+</style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="LinkNest personal link organizer">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">LN</div>
+        <div>
+          <h1>LinkNest</h1>
+          <p class="quick-note">Save, organize, and launch your links quickly — private to your browser.</p>
+        </div>
+      </div>
+
+      <div class="header-actions" role="group" aria-label="Header actions">
+        <div class="theme-switch" id="themeSwitch" role="switch" aria-checked="false" tabindex="0" aria-label="Toggle dark or light theme" data-theme="light">
+          <div class="switch-knob" id="switchKnob" aria-hidden="true">☀️</div>
+        </div>
+        <button class="btn small" id="aboutBtn" title="About LinkNest">About</button>
+      </div>
+    </header>
+
+    <!-- Left: Add + Links -->
+    <main class="left">
+      <section class="panel" aria-labelledby="addHeading">
+        <h2 id="addHeading" style="margin:0 0 10px 0">Add / Edit Link</h2>
+
+        <div class="intro">
+          <div style="font-weight:800">Welcome to LinkNest —</div>
+          <div class="quick-note">Everything is private and saved in your browser. Export anytime to back up.</div>
+        </div>
+
+        <form id="linkForm" class="add-form" autocomplete="off" novalidate>
+          <div style="display:flex;flex-direction:column">
+            <label for="title">Title</label>
+            <input id="title" name="title" type="text" placeholder="Short title (e.g., Gmail, Docs, Focus Playlist)" required />
+          </div>
+
+          <div style="display:flex;flex-direction:column">
+            <label for="url">URL</label>
+            <input id="url" name="url" type="url" placeholder="https://example.com" required />
+          </div>
+
+          <div style="grid-column:1 / -1; display:flex;gap:8px;align-items:flex-end">
+            <div style="flex:1;display:flex;gap:8px;flex-direction:column">
+              <label for="tagSelect">Category / Tag</label>
+              <div style="display:flex;gap:8px">
+                <select id="tagSelect" aria-label="Choose a category or tag"></select>
+                <input id="newTag" placeholder="Custom tag (optional)" type="text" aria-label="Add a custom tag" />
+              </div>
+              <div class="hint">Common tags: 🧠 Learn, 🎧 Focus, 💼 Work, 📥 Read Later, 🛠️ Tools</div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:150px">
+              <button class="btn" id="submitBtn" type="submit">Add Link</button>
+              <button type="button" class="btn ghost" id="clearBtn">Clear</button>
+            </div>
+          </div>
+        </form>
+
+        <div style="margin-top:16px;display:flex;justify-content:space-between;gap:12px;align-items:center">
+          <div style="flex:1">
+            <input id="search" type="text" placeholder="Search title or URL" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--glass-border);background:transparent;color:var(--text)"/>
+          </div>
+          <div style="margin-left:12px">
+            <button class="btn small" id="addSample">Import Sample</button>
+          </div>
+        </div>
+
+        <div class="filters" id="filterChips" aria-label="Filter by category" style="margin-top:12px">
+          <!-- chips inserted -->
+        </div>
+
+        <div id="listContainer" aria-live="polite" aria-atomic="false" style="margin-top:12px">
+          <!-- grouped links -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Right: Settings -->
+    <aside class="side">
+      <div class="panel notice" role="note">
+        <div style="font-size:18px">🛡️</div>
+        <div>
+          <div style="font-weight:800">Local & Private</div>
+          <div class="hint">Your data is stored only in this browser (localStorage). Clearing cache or using incognito may remove it. Export to back up.</div>
+        </div>
+      </div>
+
+      <div class="panel" aria-labelledby="exportHeading">
+        <h3 id="exportHeading" style="margin:0 0 10px 0">Export / Import</h3>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button id="exportBtn" class="btn">Export JSON</button>
+          <label for="fileInput" class="btn ghost" style="cursor:pointer">Import File
+            <input id="fileInput" type="file" accept="application/json" style="display:none" />
+          </label>
+        </div>
+
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Or paste JSON below and <strong>Merge</strong> or <strong>Replace</strong>.</div>
+        <div class="import-area">
+          <textarea id="importText" class="small-text" placeholder='Paste exported JSON here'></textarea>
+          <div style="display:flex;gap:8px">
+            <button id="validateBtn" class="btn ghost small">Validate</button>
+            <button id="mergeBtn" class="btn ghost small">Merge</button>
+            <button id="replaceBtn" class="btn small small" style="padding-left:12px;padding-right:12px">Replace</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" aria-labelledby="aboutHeading">
+        <h4 id="aboutHeading" style="margin:0 0 8px 0">About</h4>
+        <p style="margin:0 0 8px 0;color:var(--muted)">LinkNest stores links locally in your browser. Use tags for quick filtering and export to back up or transfer your collection.</p>
+        <p style="margin:0;color:var(--muted)"><strong>Shortcuts:</strong> <span style="font-weight:700">Ctrl+K</span> to focus title. Links open in a new tab for privacy and safety.</p>
+      </div>
+    </aside>
+
+    <footer style="grid-column:1 / -1;display:flex;justify-content:space-between;align-items:center;padding-top:8px">
+      <div style="color:var(--muted)">© LinkNest — Private & offline</div>
+      <div style="color:var(--muted);font-size:13px">Version 2 • No account required</div>
+    </footer>
+  </div>
+
+<script>
+/*
+ LinkNest v2 — advanced single-file app (flat design)
+ localStorage keys: linknest.links, linknest.theme
+ Features: Add/Edit/Delete, tags, filter, search, export/import, merge/replace, theme, responsive, animations
+*/
+
+// ------------------- Utilities -------------------
+const STORAGE_KEY = 'linknest.links';
+const THEME_KEY = 'linknest.theme';
+
+function uid(){ return 'ln_' + Math.random().toString(36).slice(2,9); }
+
+function nowISO(){ return new Date().toISOString(); }
+
+function isValidUrl(value){
+  // rigorous: use URL constructor then require http(s)
+  try{
+    const u = new URL(value.trim());
+    return ['http:','https:'].includes(u.protocol);
+  }catch(e){
+    return false;
+  }
+}
+
+function safe(s){ return String(s || '').trim(); }
+
+function downloadFile(filename, content){
+  const blob = new Blob([content], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+}
+
+// ------------------- State -------------------
+let state = {
+  links: [], // {id,title,url,tag,createdAt,updatedAt}
+  tags: ['🧠 Learn','🎧 Focus','💼 Work','📥 Read Later','🛠️ Tools'],
+  filter: 'All',
+  search: ''
+};
+
+// ------------------- Elements -------------------
+const tagSelect = document.getElementById('tagSelect');
+const newTagInput = document.getElementById('newTag');
+const submitBtn = document.getElementById('submitBtn');
+const clearBtn = document.getElementById('clearBtn');
+const titleInput = document.getElementById('title');
+const urlInput = document.getElementById('url');
+const listContainer = document.getElementById('listContainer');
+const filterChips = document.getElementById('filterChips');
+const searchInput = document.getElementById('search');
+const exportBtn = document.getElementById('exportBtn');
+const fileInput = document.getElementById('fileInput');
+const importText = document.getElementById('importText');
+const mergeBtn = document.getElementById('mergeBtn');
+const replaceBtn = document.getElementById('replaceBtn');
+const validateBtn = document.getElementById('validateBtn');
+const themeSwitch = document.getElementById('themeSwitch');
+const switchKnob = document.getElementById('switchKnob');
+const aboutBtn = document.getElementById('aboutBtn');
+const addSampleBtn = document.getElementById('addSample');
+
+let editingId = null;
+
+// ------------------- Storage -------------------
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)) state.links = parsed;
+    }
+  }catch(e){ console.warn('Load failed', e) }
+
+  // ensure tags include tags from links
+  const set = new Set(state.tags);
+  state.links.forEach(l => { if(l.tag) set.add(l.tag) });
+  state.tags = Array.from(set);
+}
+
+function persist(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.links));
+  }catch(e){ console.warn('Save failed', e) }
+}
+
+// ------------------- Theme -------------------
+function applyTheme(theme){
+  if(theme === 'dark'){ document.documentElement.classList.add('dark'); document.documentElement.setAttribute('data-theme','dark'); themeSwitch.dataset.theme='dark'; switchKnob.textContent='🌙'; themeSwitch.setAttribute('aria-checked','true') }
+  else { document.documentElement.classList.remove('dark'); document.documentElement.setAttribute('data-theme','light'); themeSwitch.dataset.theme='light'; switchKnob.textContent='☀️'; themeSwitch.setAttribute('aria-checked','false') }
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY) || 'light';
+  applyTheme(saved);
+  themeSwitch.addEventListener('click', ()=> {
+    const t = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+    applyTheme(t);
+  });
+  themeSwitch.addEventListener('keydown', (e)=> { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); themeSwitch.click(); } });
+}
+
+// ------------------- UI Helpers -------------------
+function populateTagOptions(){
+  tagSelect.innerHTML = '';
+  state.tags.forEach(tag => {
+    const opt = document.createElement('option');
+    opt.value = tag; opt.textContent = tag;
+    tagSelect.appendChild(opt);
+  });
+}
+
+function renderFilterChips(){
+  filterChips.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = 'chip' + (state.filter === 'All' ? ' active' : '');
+  all.textContent = 'All';
+  all.onclick = ()=> { state.filter='All'; render(); };
+  filterChips.appendChild(all);
+
+  state.tags.slice().sort((a,b)=> a.localeCompare(b)).forEach(tag=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (state.filter === tag ? ' active' : '');
+    btn.textContent = tag;
+    btn.onclick = ()=> { state.filter = tag; render(); };
+    filterChips.appendChild(btn);
+  });
+}
+
+function groupLinks(links){
+  const groups = {};
+  links.forEach(l => {
+    const t = l.tag || 'Untagged';
+    if(!groups[t]) groups[t] = [];
+    groups[t].push(l);
+  });
+  // sort tags alphabetically but keep common order
+  const ordered = Object.keys(groups).sort((a,b)=> a.localeCompare(b)).map(tag=> ({ tag, items: groups[tag].sort((x,y)=> x.title.localeCompare(y.title)) }) );
+  return ordered;
+}
+
+function clearForm(){
+  titleInput.value = '';
+  urlInput.value = '';
+  newTagInput.value = '';
+  tagSelect.selectedIndex = 0;
+  editingId = null;
+  submitBtn.textContent = 'Add Link';
+}
+
+function tagColor(tag){
+  const t = (tag || '').toLowerCase();
+  if(t.includes('learn')) return 'var(--tag-learn)';
+  if(t.includes('focus')) return 'var(--tag-focus)';
+  if(t.includes('work')) return 'var(--tag-work)';
+  if(t.includes('read')) return 'var(--tag-read)';
+  if(t.includes('tool')) return 'var(--tag-tools)';
+  return 'var(--tag-imported)';
+}
+
+// ------------------- Render -------------------
+function render(){
+  persist();
+  populateTagOptions();
+  renderFilterChips();
+
+  const q = (state.search || '').toLowerCase().trim();
+  let filtered = state.links.filter(l=>{
+    const matchFilter = (state.filter === 'All') || (l.tag === state.filter);
+    const matchSearch = !q || (l.title && l.title.toLowerCase().includes(q)) || (l.url && l.url.toLowerCase().includes(q));
+    return matchFilter && matchSearch;
+  });
+
+  const groups = groupLinks(filtered);
+  listContainer.innerHTML = '';
+  if(groups.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'hint';
+    empty.textContent = 'No links yet. Add your first link above.';
+    listContainer.appendChild(empty);
+    return;
+  }
+
+  groups.forEach(group=>{
+    const g = document.createElement('div'); g.className = 'group';
+    const h = document.createElement('h3'); h.textContent = group.tag + ' (' + group.items.length + ')';
+    g.appendChild(h);
+
+    const gl = document.createElement('div'); gl.className = 'group-list';
+    group.items.forEach(item=>{
+      const li = document.createElement('div'); li.className = 'link-item'; li.setAttribute('data-id', item.id);
+
+      // favicon (initial or host)
+      const f = document.createElement('div'); f.className = 'favicon';
+      const host = (function(){
+        try{ return (new URL(item.url)).host.replace('www.',''); }catch(e){ return item.url; }
+      })();
+      f.textContent = (item.title && item.title[0].toUpperCase()) || (host && host[0].toUpperCase()) || '🔗';
+
+      // meta
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const a = document.createElement('a'); a.className='title'; a.href = item.url; a.target='_blank'; a.rel='noopener noreferrer';
+      a.textContent = item.title || item.url;
+      a.title = item.url;
+      const urlLine = document.createElement('div'); urlLine.className = 'url'; urlLine.textContent = host || item.url;
+      const tagBadge = document.createElement('span'); tagBadge.className = 'tag-badge'; tagBadge.textContent = item.tag || 'Untagged';
+      tagBadge.style.background = tagColor(item.tag);
+
+      meta.appendChild(a); meta.appendChild(urlLine); meta.appendChild(tagBadge);
+
+      // actions
+      const actions = document.createElement('div'); actions.className = 'actions';
+      const openBtn = document.createElement('a'); openBtn.className='open-btn'; openBtn.textContent='Open'; openBtn.href=item.url; openBtn.target='_blank'; openBtn.rel='noopener noreferrer';
+      openBtn.setAttribute('aria-label','Open link in new tab');
+
+      const editBtn = document.createElement('button'); editBtn.className='icon-btn'; editBtn.title='Edit'; editBtn.innerHTML='✏️';
+      editBtn.onclick = ()=> startEdit(item.id);
+
+      const delBtn = document.createElement('button'); delBtn.className='icon-btn'; delBtn.title='Delete'; delBtn.innerHTML='🗑️';
+      delBtn.onclick = ()=> {
+        if(confirm(`Delete "${item.title}"? This action cannot be undone.`)){
+          state.links = state.links.filter(l=> l.id !== item.id);
+          render();
+        }
+      };
+
+      actions.appendChild(openBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
+
+      li.appendChild(f); li.appendChild(meta); li.appendChild(actions);
+      gl.appendChild(li);
+    });
+
+    g.appendChild(gl);
+    listContainer.appendChild(g);
+  });
+
+}
+
+// ------------------- Add / Edit -------------------
+document.getElementById('linkForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const title = safe(titleInput.value);
+  const url = safe(urlInput.value);
+  const selected = safe(tagSelect.value);
+  const custom = safe(newTagInput.value);
+  const tag = custom || selected || 'Imported';
+
+  if(!title){ alert('Please enter a title.'); titleInput.focus(); return; }
+  if(!url || !isValidUrl(url)){ alert('Please enter a valid URL (include http:// or https://).'); urlInput.focus(); return; }
+
+  if(editingId){
+    const item = state.links.find(x => x.id === editingId);
+    if(!item){ alert('Could not find item to edit.'); clearForm(); return; }
+    item.title = title; item.url = url; item.tag = tag; item.updatedAt = nowISO();
+    if(!state.tags.includes(tag)) state.tags.push(tag);
+    editingId = null;
+    submitBtn.textContent = 'Add Link';
+  } else {
+    // avoid exact URL duplicates
+    if(state.links.some(l=> l.url === url)){
+      if(!confirm('A link with this URL already exists. Add duplicate?')) return;
+    }
+    const newItem = { id: uid(), title, url, tag, createdAt: nowISO(), updatedAt: nowISO() };
+    state.links.push(newItem);
+    if(!state.tags.includes(tag)) state.tags.push(tag);
+  }
+  clearForm();
+  render();
+});
+
+// start editing
+function startEdit(id){
+  const item = state.links.find(l=> l.id === id);
+  if(!item) return;
+  editingId = id;
+  titleInput.value = item.title;
+  urlInput.value = item.url;
+  if(!state.tags.includes(item.tag)) state.tags.push(item.tag);
+  populateTagOptions();
+  tagSelect.value = item.tag;
+  submitBtn.textContent = 'Update Link';
+  titleInput.focus();
+}
+
+// clear
+clearBtn.addEventListener('click', ()=> clearForm());
+
+// search
+searchInput.addEventListener('input', ()=> { state.search = searchInput.value; render(); });
+
+// keyboard shortcut
+document.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); titleInput.focus(); titleInput.select(); }
+});
+
+// ------------------- Export / Import -------------------
+exportBtn.addEventListener('click', ()=>{
+  const payload = JSON.stringify(state.links, null, 2);
+  downloadFile(`linknest-export-${(new Date()).toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`, payload);
+});
+
+// file import
+fileInput.addEventListener('change', async(e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  try{
+    const txt = await f.text();
+    importText.value = txt;
+    alert('File loaded into the import box. Click Validate then Merge or Replace.');
+  }catch(err){
+    alert('Failed to read file: ' + err);
+  }
+  fileInput.value = '';
+});
+
+// validate
+validateBtn.addEventListener('click', ()=>{
+  const txt = importText.value.trim();
+  if(!txt){ alert('No JSON in import box.'); return; }
+  try{
+    const parsed = JSON.parse(txt);
+    if(!Array.isArray(parsed)) { alert('Imported JSON should be an array of link objects.'); return; }
+    const valid = parsed.every(p => typeof p.title === 'string' && typeof p.url === 'string');
+    if(!valid){ alert('Each entry should at least contain "title" and "url" strings.'); return; }
+    alert('JSON looks valid. Use Merge to add or Replace to overwrite.');
+  }catch(e){ alert('Invalid JSON: ' + e.message); }
+});
+
+// merge
+mergeBtn.addEventListener('click', ()=>{
+  const txt = importText.value.trim();
+  if(!txt){ alert('No JSON to import.'); return; }
+  try{
+    const parsed = JSON.parse(txt);
+    if(!Array.isArray(parsed)) { alert('Imported JSON must be an array.'); return; }
+    let added = 0;
+    parsed.forEach(p=>{
+      const title = safe(p.title || p.name);
+      const url = safe(p.url || p.link);
+      if(!title || !url || !isValidUrl(url)) return;
+      // skip exact URL duplicates
+      if(state.links.some(l=> l.url === url)) return;
+      const tag = safe(p.tag) || 'Imported';
+      const item = { id: uid(), title, url, tag, createdAt: nowISO(), updatedAt: nowISO() };
+      state.links.push(item);
+      if(!state.tags.includes(tag)) state.tags.push(tag);
+      added++;
+    });
+    if(added>0){ render(); importText.value=''; alert('Merged ' + added + ' links.'); }
+    else alert('No new valid links found to merge (maybe duplicates).');
+  }catch(e){ alert('Failed to import: ' + e.message); }
+});
+
+// replace
+replaceBtn.addEventListener('click', ()=>{
+  const txt = importText.value.trim();
+  if(!txt){
+    if(!confirm('Import box is empty. Do you want to clear all links?')) return;
+    state.links = []; render(); return;
+  }
+  try{
+    const parsed = JSON.parse(txt);
+    if(!Array.isArray(parsed)) { alert('Imported JSON must be an array.'); return; }
+    const newList = [];
+    parsed.forEach(p=>{
+      const title = safe(p.title || p.name);
+      const url = safe(p.url || p.link);
+      if(!title || !url || !isValidUrl(url)) return;
+      const tag = safe(p.tag) || 'Imported';
+      newList.push({ id: uid(), title, url, tag, createdAt: nowISO(), updatedAt: nowISO() });
+    });
+    state.links = newList;
+    const tagSet = new Set(state.tags);
+    state.links.forEach(l => tagSet.add(l.tag));
+    state.tags = Array.from(tagSet);
+    render();
+    importText.value = '';
+    alert('Import replaced your links.');
+  }catch(e){ alert('Failed to import: ' + e.message); }
+});
+
+// ------------------- Accessibility & small helpers -------------------
+aboutBtn.addEventListener('click', ()=> {
+  alert('LinkNest — Private offline link manager. Your data stays in this browser (localStorage). Export to backup. Shortcuts: Ctrl+K to focus title.');
+});
+
+// add sample (useful for quick testing)
+addSampleBtn.addEventListener('click', ()=>{
+  const samples = [
+    { title: 'MDN Web Docs', url: 'https://developer.mozilla.org/', tag: '🧠 Learn' },
+    { title: 'YouTube Focus Music', url: 'https://www.youtube.com/', tag: '🎧 Focus' },
+    { title: 'Gmail', url: 'https://mail.google.com/', tag: '💼 Work' },
+    { title: 'Pocket', url: 'https://getpocket.com/', tag: '📥 Read Later' },
+    { title: 'Stack Overflow', url: 'https://stackoverflow.com/', tag: '🛠️ Tools' }
+  ];
+  let added = 0;
+  samples.forEach(s=>{
+    if(!state.links.some(l=> l.url === s.url)){
+      state.links.push(Object.assign({ id: uid(), createdAt: nowISO(), updatedAt: nowISO() }, s));
+      added++;
+    }
+    if(!state.tags.includes(s.tag)) state.tags.push(s.tag);
+  });
+  render();
+  alert('Sample links added (' + added + ').');
+});
+
+// ------------------- Init -------------------
+(function init(){
+  load();
+  initTheme();
+  populateTagOptions();
+  render();
+})();
+</script>
+</body>
+</html>
