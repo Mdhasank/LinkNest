@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent {label 'builder-label'}
 
     stages {
         stage('Echo') {
