@@ -1,5 +1,5 @@
+---
 version: 0.2
-
 phases:
   install:
     runtime-versions:
@@ -11,21 +11,17 @@ phases:
       - sudo dnf -y install python3 python3-pip
       - echo "Installing Python dependencies from requirements.txt..."
       - python3 -m pip install --user -r requirements.txt
-
   pre_build:
     commands:
       - echo "Pre-build phase: normally used for preparation tasks."
-
   build:
     commands:
       - echo "Build phase: where the application would be built or run."
       - mkdir -p output
       - zip -r output/flask-app.zip . -x "*.git*"
-
   post_build:
     commands:
       - echo "Post-build phase: cleanup, deployment, or final reporting."
-
 artifacts:
   files:
     - output/flask-app.zip
