@@ -14,17 +14,17 @@ phases:
 
   pre_build:
     commands:
-      - echo "Pre-build phase: normally used for preparation tasks."
+      - echo "Pre-build phase normally used for preparation tasks."
 
   build:
     commands:
-      - echo "Build phase: where the application would be built or run."
+      - echo "Build phase where the application would be built or run."
       - mkdir -p output
       - zip -r output/flask-app.zip . -x "*.git*"
 
   post_build:
     commands:
-      - echo "Post-build phase: cleanup, deployment, or final reporting."
+      - echo "Post-build phase cleanup, deployment, or final reporting."
 
 artifacts:
   files:
