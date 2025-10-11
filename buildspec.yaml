@@ -18,7 +18,7 @@ phases:
 
   build:
     commands:
-      - echo "Build phase where the application would be built or run."
+      - echo "Build phase: where the application would be built or run."
       - mkdir -p output
       - zip -r output/flask-app.zip . -x "*.git*"
 
