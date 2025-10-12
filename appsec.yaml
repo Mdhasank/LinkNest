@@ -1,0 +1,23 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /home/ec2-user/my-python-app
+    overwrite: true
+
+hooks:
+  BeforeInstall:
+    - location: /cleanup.sh
+      timeout: 60
+      runas: root
+      
+  ApplicationStop:
+    - location: /stop_app.sh
+      timeout: 60
+      runas: root
+
+  ApplicationStart:
+    - location: /start_app.sh
+      timeout: 300
+      runas: root
