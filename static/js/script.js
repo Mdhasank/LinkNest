@@ -1,11 +1,3 @@
-/**
- * LinkNest v5.2 Core Logic
- * - Removed Reminders
- * - Strict Validation (Url or File required)
- * - Category Deletion
- * - Modal/Sidebar Fixes
- */
-
 // --- DB Config ---
 const DB_NAME = 'LinkNestDB';
 const DB_VERSION = 2;
